@@ -1,5 +1,7 @@
 # TaBi - Track BGP Hijacks
 
+[![Build Status](https://travis-ci.org/nrchandan/tabi.svg?branch=master)](https://travis-ci.org/nrchandan/tabi)
+
 Developed since 2011 for the needs of the [French Internet Resilience
 Observatory](http://www.ssi.gouv.fr/observatoire), TaBi is a framework that
 ease the detection of BGP IP prefixes conflicts, and their classification into
