@@ -2,6 +2,9 @@
 *.pyc
 *.gz
 *.egg-info
+.cache
+.coverage
+.idea
 .eggs
 .pybuild
 dist
