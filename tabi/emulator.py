@@ -42,7 +42,7 @@ def process_message(rib, collector, message, is_watched=None, data=None):
 
 
 def detect_conflicts(collector, files, opener=default_opener,
-                     format=mabo_format, is_watched=None):
+                     format=mabo_format, is_watched=None, rib=None):
     """
     Get a list of conflicts (hijacks without annotation) from the BGP files
     (bviews and updates).
@@ -54,7 +54,8 @@ def detect_conflicts(collector, files, opener=default_opener,
     :param is_watched: Function returning True if the BGP update must be followed
     :return: Generator of conflicts
     """
-    rib = EmulatedRIB()
+    if rib is None:
+        rib = EmulatedRIB()
     queue = deque(files)
 
     # insert initial bview in the RIB
@@ -79,7 +80,9 @@ def detect_conflicts(collector, files, opener=default_opener,
         else:
             bviews.append(bview_file)
 
-    if len(bviews) == 0:
+    if len(bviews) == 0 and len(rib.nodes()) == 0:
+        # In case of pre-populated RIB, supplying rib records again
+        # is not a requirement. Can also be invoked with only the update records.
         raise ValueError("no bviews were loaded")
 
     # play all BGP updates to detect BGP conflicts
