@@ -9,14 +9,14 @@ from tabi.rib import EmulatedRIB
 PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), "resources/conflict_annotation/inputs")
 
 RIB = {
+    "type": "table_dump_v2",
+    "timestamp": 1451601234.0,
     "entries": [{
         "peer_ip": "11.33.55.77",
         "peer_as": 99999.0,
         "originated_timestamp": 0.0,
         "as_path": "22 333 4444 55555"
     }],
-    "type": "table_dump_v2",
-    "timestamp": 1451601234.0,
     "prefix": "1.2.3.0/24"
 }
 
@@ -28,6 +28,15 @@ UPDATE = {
     "as_path": "1111 2222 3333",
     "announce": ["1.2.3.0/25"],
     "withdraw": []
+}
+
+WITHDRAW = {
+    "type": "update",
+    "timestamp": 1451607000.0,
+    "peer_as": 99999.0,
+    "peer_ip": "11.33.55.77",
+    "announce": [],
+    "withdraw": ["1.2.3.0/24"]
 }
 
 EXPECTED = {
@@ -69,7 +78,7 @@ def test_detect_conflicts_boundary_2():
     try:
         conflicts = detect_conflicts("collector", [{"type": "table_dump_v2"}], opener=dict_opener)
         conflicts.next()
-        raise Exception("There shouldn't be any conflict to report")
+        raise Exception("Should not find any conflict")
     except StopIteration:
         pass
 
@@ -79,6 +88,21 @@ def test_detect_conflicts_rib_update():
     conflicts = detect_conflicts("collector", [RIB, UPDATE], opener=dict_opener)
     conflict = conflicts.next()
     assert conflict == EXPECTED
+    try:
+        conflicts.next()
+        raise Exception("Should find only one conflict")
+    except StopIteration:
+        pass
+
+
+def test_detect_conflicts_rib_withdraw_update():
+    """Check if conflicts detection works with withdrawals"""
+    conflicts = detect_conflicts("collector", [RIB, WITHDRAW, UPDATE], opener=dict_opener)
+    try:
+        conflicts.next()
+        raise Exception("Should not find any conflict")
+    except StopIteration:
+        pass
 
 
 def test_detect_conflicts_rib_only():
@@ -133,6 +157,11 @@ def test_detect_multiple_conflicts():
     conflicts = detect_conflicts("collector", [UPDATE], opener=dict_opener, rib=rib)
     conflict = conflicts.next()
     assert conflict == EXPECTED
+    try:
+        conflicts.next()
+        raise Exception("Should find only one conflict")
+    except StopIteration:
+        pass
 
 
 def test_detect_hijacks_boundary_1():
@@ -152,6 +181,11 @@ def test_detect_hijacks_rib_update():
     expected = EXPECTED.copy()
     expected['type'] = 'ABNORMAL'
     assert conflict == expected
+    try:
+        conflicts.next()
+        raise Exception("Should find only one conflict")
+    except StopIteration:
+        pass
 
 
 def test_detect_hijacks():
