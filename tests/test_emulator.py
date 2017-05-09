@@ -1,9 +1,12 @@
 import contextlib
 import json
+import os
 
 from tabi.emulator import detect_conflicts, detect_hijacks
+
 from tabi.rib import EmulatedRIB
 
+PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), "resources/conflict_annotation/inputs")
 
 RIB = {
     "entries": [{
@@ -84,7 +87,7 @@ def test_detect_conflicts_rib_only():
     rib2 = {
         "entries": [{
             "peer_ip": "22.44.66.88",
-            "peer_as": 99999.0,
+            "peer_as": 88888.0,
             "originated_timestamp": 1451605511.0,
             "as_path": "22 333 4444 66666"
         }],
@@ -112,6 +115,11 @@ def test_detect_conflicts_rib_only():
         'asn': 66666
     }
     assert conflict == expected
+    # try:
+    #     conflicts.next()
+    #     raise Exception("Should only return one conflict")
+    # except StopIteration:
+    #     pass
 
 
 def test_detect_multiple_conflicts():
@@ -146,5 +154,37 @@ def test_detect_hijacks_rib_update():
     assert conflict == expected
 
 
+def test_detect_hijacks():
+    """Check if hijacks detection between two RIB records """
+
+    irr_org_file = os.path.join(PATH, "organisations_file")
+    irr_mnt_file = os.path.join(PATH, "maintainers_file")
+    irr_ro_file = os.path.join(PATH, "ro_file")
+    rpki_roa_file = os.path.join(PATH, "roa_file")
+
+    rib1 = RIB
+
+    rib2 = {
+        "entries": [{
+            "peer_ip": "22.44.66.88",
+            "peer_as": 99999.0,
+            "originated_timestamp": 1451605511.0,
+            "as_path": "22 333 4444 66666"
+        }],
+        "type": "table_dump_v2",
+        "timestamp": 1451605511.0,
+        "prefix": "1.2.3.0/24"
+    }
+
+    conflicts = detect_hijacks("collector", [rib1, rib2],
+                               irr_org_file=irr_org_file,
+                               irr_mnt_file=irr_mnt_file,
+                               irr_ro_file=irr_ro_file,
+                               rpki_roa_file=rpki_roa_file,
+                               opener=dict_opener)
+
+    conflict = conflicts.next()
+    assert conflict["type"] == "ABNORMAL"
+
 if __name__ == '__main__':
-    test_detect_multiple_conflicts()
+    test_detect_hijacks()
