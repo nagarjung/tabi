@@ -189,7 +189,7 @@ def test_detect_hijacks_rib_update():
 
 
 def test_detect_hijacks():
-    """Check if hijacks detection between two RIB records """
+    """Check that there are no hijacks when there are no conflicts in RIB records """
 
     irr_org_file = os.path.join(PATH, "organisations_file")
     irr_mnt_file = os.path.join(PATH, "maintainers_file")
@@ -207,7 +207,7 @@ def test_detect_hijacks():
         }],
         "type": "table_dump_v2",
         "timestamp": 1451605511.0,
-        "prefix": "1.2.3.0/24"
+        "prefix": "2.2.2.0/24"
     }
 
     conflicts = detect_hijacks("collector", [rib1, rib2],
@@ -217,8 +217,12 @@ def test_detect_hijacks():
                                rpki_roa_file=rpki_roa_file,
                                opener=dict_opener)
 
-    conflict = conflicts.next()
-    assert conflict["type"] == "ABNORMAL"
+    try:
+        conflicts.next()
+        raise Exception("No conflicts")
+    except StopIteration:
+        pass
+
 
 if __name__ == '__main__':
     test_detect_hijacks()
