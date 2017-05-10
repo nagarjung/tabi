@@ -4,9 +4,12 @@
 
 import sys
 
+from pip.req import parse_requirements
 from setuptools import setup, find_packages
 from setuptools.command.test import test as TestCommand
 
+install_reqs = parse_requirements("requirements.txt", session='hack')
+reqs = [str(ir.req) for ir in install_reqs]
 
 class PyTest(TestCommand):
 
@@ -17,7 +20,7 @@ class PyTest(TestCommand):
         self.pytest_args = []
 
     def run_tests(self):
-        #import here, cause outside the eggs aren't loaded
+        # import here, cause outside the eggs aren't loaded
         import pytest
         sys.exit(pytest.main(self.pytest_args))
 
@@ -34,10 +37,7 @@ setup(
     entry_points={
         "console_scripts": ["tabi=tabi.parallel.__main__:main"]
     },
-    install_requires=[
-        "py-radix",
-        "python-dateutil",
-    ],
+    install_requires=reqs,
     tests_require=["pytest>=2.7.1"],
     cmdclass={"test": PyTest}
 )

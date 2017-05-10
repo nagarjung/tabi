@@ -1,6 +1,7 @@
 import contextlib
 import json
 
+from tabi.annotate import annotate_with_type
 from tabi.emulator import detect_conflicts, detect_hijacks
 from tabi.rib import EmulatedRIB
 
@@ -178,7 +179,7 @@ def test_detect_multiple_conflicts():
 def test_detect_hijacks_boundary_1():
     """Check if conflicts detection fails on empty file list"""
     try:
-        hijacks = detect_hijacks("collector", [])
+        hijacks = detect_hijacks([], "collector", [])
         hijacks.next()
         raise Exception("Should raise an exception on empty file list")
     except ValueError as error:
@@ -187,7 +188,7 @@ def test_detect_hijacks_boundary_1():
 
 def test_detect_hijacks_rib_update():
     """Check if conflicts detection works for a conflict between rib and update files"""
-    conflicts = detect_hijacks("collector", [RIB, UPDATE], opener=dict_opener)
+    conflicts = detect_hijacks([annotate_with_type], "collector", [RIB, UPDATE], opener=dict_opener)
     conflict = conflicts.next()
     expected = EXPECTED.copy()
     expected['type'] = 'ABNORMAL'
