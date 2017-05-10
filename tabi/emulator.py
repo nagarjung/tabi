@@ -98,29 +98,13 @@ def detect_conflicts(collector, files, opener=default_opener,
                         yield conflict
 
 
-def detect_hijacks(collector, files,
-                   irr_org_file=None,
-                   irr_mnt_file=None,
-                   irr_ro_file=None,
-                   rpki_roa_file=None,
-                   opener=default_opener,
-                   format=mabo_format, is_watched=None):
-    """
-    Detect BGP hijacks from `files' and annotate them using metadata.
-
-    :param collector: Name of the collector the BGP files come from
-    :param files: List of BGP files to process
-    :param irr_org_file: CSV file containing irr,organisation,asn
-    :param irr_mrt_file: CSV file containing irr,maintainer,asn
-    :param irr_ro_file: CSV file containing irr,prefix,asn
-    :param rpki_roa_file: CSV file containing asn,prefix,max_length,valid
-    :param opener: Function to use in order to open the files
-    :param format: Format of the BGP data in the files
-    :return: Generator of hijacks (conflicts with annotation)
-    """
-
+def parse_registry_data(irr_org_file=None,
+                        irr_mnt_file=None,
+                        irr_ro_file=None,
+                        rpki_roa_file=None):
     logger.info("loading metadata...")
     funcs = [annotate_if_direct]
+
     if irr_org_file is not None and irr_mnt_file is not None:
         relations_dict = dict()
         fill_relation_struct(irr_org_file, relations_dict,
@@ -139,10 +123,32 @@ def detect_hijacks(collector, files,
         funcs.append(partial(annotate_if_roa, roa_rad_tree))
 
     funcs.append(annotate_with_type)
-    logger.info("starting hijacks detection...")
+
+    return funcs
+
+
+def detect_hijacks(funcs, collector, files,
+                   opener=default_opener,
+                   format=mabo_format, is_watched=None):
+    """
+    Detect BGP hijacks from `files' and annotate them using metadata.
+
+    :param collector: Name of the collector the BGP files come from
+    :param files: List of BGP files to process
+    :param irr_org_file: CSV file containing irr,organisation,asn
+    :param irr_mrt_file: CSV file containing irr,maintainer,asn
+    :param irr_ro_file: CSV file containing irr,prefix,asn
+    :param rpki_roa_file: CSV file containing asn,prefix,max_length,valid
+    :param opener: Function to use in order to open the files
+    :param format: Format of the BGP data in the files
+    :return: Generator of hijacks (conflicts with annotation)
+    """
+
+    logger.info("starting hijacks detection ...")
     for conflict in detect_conflicts(collector, files,
                                      opener=opener, format=format,
                                      is_watched=is_watched):
+
         for f in funcs:
             f(conflict)
         yield conflict
