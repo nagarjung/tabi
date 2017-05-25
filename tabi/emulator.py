@@ -42,15 +42,6 @@ file_handler.setLevel(logging.DEBUG)
 file_handler.setFormatter(formatter)
 logger.addHandler(file_handler)
 
-'''
-logger.setLevel(logging.DEBUG)
-formatter = logging.Formatter('%(asctime)s:%(name)s:%(message)s')
-file_handler = logging.FileHandler(log_path)
-file_handler.setLevel(logging.DEBUG)
-file_handler.setFormatter(formatter)
-logger.addHandler(file_handler)
-'''
-
 
 def process_message(rib, collector, message, is_watched=None, data=None):
     """
@@ -112,9 +103,9 @@ def detect_conflicts(collector, files, opener=default_opener,
             break
         else:
             bviews.append(bview_file)
-            logger.info("  Processed and loaded BGP data into memory")
+            logger.info(" Processed and loaded BGP data into memory")
 
-    logger.info("  Time for processing BGP data in seconds: %s" % (time.time() - process_time))
+    logger.info(" Time for processing BGP data in seconds: %s" % (time.time() - process_time))
 
     if len(bviews) == 0 and len(rib.nodes()) == 0:
         # In case of pre-populated RIB, supplying rib records again
@@ -140,7 +131,7 @@ def parse_registry_data(irr_org_file=None,
                         irr_mnt_file=None,
                         irr_ro_file=None,
                         rpki_roa_file=None):
-    logger.info("loading metadata...")
+    logger.info(" loading metadata...")
     funcs = [annotate_if_direct]
 
     if irr_org_file is not None and irr_mnt_file is not None:
