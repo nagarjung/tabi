@@ -3,6 +3,8 @@
 # This file is part of the tabi project licensed under the MIT license.
 
 import logging
+import os
+import time
 
 from functools import partial
 from itertools import chain
@@ -17,7 +19,28 @@ from tabi.annotate import annotate_if_relation, annotate_if_route_objects, \
 from tabi.helpers import default_opener
 
 
-logger = logging.getLogger(__name__)
+def make_dir(dir_name, file_name):
+    import __main__
+    script_dir = os.path.dirname(os.path.abspath(__main__.__file__))
+    destination_dir = os.path.join(script_dir, dir_name)
+
+    try:
+        os.makedirs(destination_dir)
+    except OSError:
+        pass  # already exists
+    path = os.path.join(destination_dir, file_name)
+
+    return path
+
+log_path = make_dir("bgp_logs", "bgp.log")
+
+logger = logging.getLogger("emulator")
+logger.setLevel(logging.DEBUG)
+formatter = logging.Formatter('%(asctime)s:%(name)s:%(message)s')
+file_handler = logging.FileHandler(log_path)
+file_handler.setLevel(logging.DEBUG)
+file_handler.setFormatter(formatter)
+logger.addHandler(file_handler)
 
 
 def process_message(rib, collector, message, is_watched=None, data=None):
@@ -60,6 +83,7 @@ def detect_conflicts(collector, files, opener=default_opener,
 
     # insert initial bview in the RIB
     bviews = []
+    process_time = time.time()
     while len(queue):
         try:
             bview_file = queue.popleft()
@@ -79,6 +103,9 @@ def detect_conflicts(collector, files, opener=default_opener,
             break
         else:
             bviews.append(bview_file)
+            logger.info(" Processed and loaded BGP data into memory")
+
+    logger.info(" Time for processing BGP data in seconds: %s" % (time.time() - process_time))
 
     if len(bviews) == 0 and len(rib.nodes()) == 0:
         # In case of pre-populated RIB, supplying rib records again
@@ -86,6 +113,8 @@ def detect_conflicts(collector, files, opener=default_opener,
         raise ValueError("no bviews were loaded")
 
     # play all BGP updates to detect BGP conflicts
+
+    logger.info(" starting Hijacks detection")
     for file in chain(bviews, queue):
         with opener(file) as f:
             for data in f:
@@ -102,7 +131,7 @@ def parse_registry_data(irr_org_file=None,
                         irr_mnt_file=None,
                         irr_ro_file=None,
                         rpki_roa_file=None):
-    logger.info("loading metadata...")
+    logger.info(" loading metadata...")
     funcs = [annotate_if_direct]
 
     if irr_org_file is not None and irr_mnt_file is not None:
@@ -129,7 +158,7 @@ def parse_registry_data(irr_org_file=None,
 
 def detect_hijacks(funcs, collector, files,
                    opener=default_opener,
-                   format=mabo_format, is_watched=None):
+                   format=mabo_format, is_watched=None, rib=None):
     """
     Detect BGP hijacks from `files' and annotate them using metadata.
 
@@ -144,10 +173,9 @@ def detect_hijacks(funcs, collector, files,
     :return: Generator of hijacks (conflicts with annotation)
     """
 
-    logger.info("starting hijacks detection ...")
     for conflict in detect_conflicts(collector, files,
                                      opener=opener, format=format,
-                                     is_watched=is_watched):
+                                     is_watched=is_watched, rib=rib):
 
         for f in funcs:
             f(conflict)
