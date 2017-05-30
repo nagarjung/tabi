@@ -1,0 +1,39 @@
+---
+- hosts: tabi
+  tasks:
+  - name: Kill the existing Process
+    shell: kill `ps -ef | grep detect |grep -v auto|awk '{print $2}'`
+    ignore_errors: yes
+    tags: pskill
+
+  - name: Creating Tabi Directory
+    file:
+      path: '{{ tabi_dest_loc }}'
+      state: directory
+    tags: dir
+
+  - name: Copying Build Artifacts
+    synchronize:
+      src: '{{ tabi_src_loc }}'
+      dest: '{{ tabi_dest_loc }}'
+
+  - name: Build Tabi
+    shell: python setup.py install
+    args:
+      chdir: /home/pramati/tabi
+    become: true
+    tags: build
+
+  - name: Running tabi
+    shell: nohup python examples/annotation/detect_hijacks.py -c local -i mabo --registry-path registry --bgp-path bgp &
+    args:
+      chdir: /home/pramati/tabi
+#    environment:
+#      PYTHONPATH: /home/pramati/tabi
+    tags: run-hijack
+
+  - name: Fetching Logs
+    fetch:
+      src: '{{ tabi_log_loc }}'
+      dest: '{{ tabi_report_loc }}'
+    tags: logs
