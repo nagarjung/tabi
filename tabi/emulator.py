@@ -4,7 +4,9 @@
 
 import logging
 import os
+import shutil
 import time
+import __main__
 
 from functools import partial
 from itertools import chain
@@ -18,29 +20,49 @@ from tabi.annotate import annotate_if_relation, annotate_if_route_objects, \
     fill_relation_struct, fill_ro_struct, fill_roa_struct
 from tabi.helpers import default_opener
 
+script_dir = os.path.dirname(os.path.abspath(__main__.__file__))
 
-def make_dir(dir_name, file_name):
-    import __main__
-    script_dir = os.path.dirname(os.path.abspath(__main__.__file__))
-    destination_dir = os.path.join(script_dir, dir_name)
+
+def make_dir(dir_name, new_dir):
+    destination_dir = os.path.join(dir_name, new_dir)
 
     try:
         os.makedirs(destination_dir)
     except OSError:
         pass  # already exists
-    path = os.path.join(destination_dir, file_name)
 
-    return path
+    return destination_dir
 
-log_path = make_dir("bgp_logs", "bgp.log")
+log_path = make_dir(script_dir, "bgp_logs")
+file_name = "bgp.log"
+log_file = log_path+"/"+file_name
 
 logger = logging.getLogger("emulator")
 logger.setLevel(logging.DEBUG)
 formatter = logging.Formatter('%(asctime)s:%(name)s:%(message)s')
-file_handler = logging.FileHandler(log_path)
+file_handler = logging.FileHandler(log_file)
 file_handler.setLevel(logging.DEBUG)
 file_handler.setFormatter(formatter)
 logger.addHandler(file_handler)
+
+
+def generate_registry_events(src_dir, dst_dir):
+
+    for dst_file in os.listdir(dst_dir):
+        file_path = os.path.join(dst_dir, dst_file)
+        try:
+            if os.path.isfile(file_path):
+                os.unlink(file_path)
+
+        except Exception as e:
+            logger.info("File %s cannot be deleted" % e)
+
+    src_files = os.listdir(src_dir)
+    for src_file in src_files:
+        full_file_name = os.path.join(src_dir, src_file)
+        if full_file_name.endswith(".csv"):
+            if os.path.isfile(full_file_name):
+                shutil.copy(full_file_name, dst_dir)
 
 
 def process_message(rib, collector, message, is_watched=None, data=None):

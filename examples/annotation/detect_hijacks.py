@@ -12,16 +12,21 @@ import time
 
 from time import localtime, strftime
 from tabi.rib import EmulatedRIB
-from tabi.emulator import parse_registry_data, detect_hijacks, make_dir
+from tabi.emulator import parse_registry_data, detect_hijacks, make_dir, generate_registry_events
 from watchdog.events import FileSystemEventHandler
 from watchdog.observers import Observer
 
+script_dir = os.path.dirname(os.path.abspath(__file__))
+
 logger = logging.getLogger(__name__)
 
-log_path = make_dir("bgp_logs", "bgp.log")
+log_dir = make_dir(script_dir, "bgp_logs")
+file_name = "bgp.log"
+log_file = log_dir+"/"+file_name
+
 logger.setLevel(logging.DEBUG)
 formatter = logging.Formatter('%(asctime)s:%(name)s:%(message)s')
-file_handler = logging.FileHandler(log_path)
+file_handler = logging.FileHandler(log_file)
 file_handler.setLevel(logging.DEBUG)
 file_handler.setFormatter(formatter)
 logger.addHandler(file_handler)
@@ -70,7 +75,8 @@ class PollingHandler(FileSystemEventHandler):
         what = 'directory' if event.is_directory else 'file'
         logger.info(" Created %s: %s", what, event.src_path)
 
-        if args.registry_path == os.path.dirname(event.src_path):
+        if registry_dir == os.path.dirname(event.src_path):
+
             """If an event is triggering the registry path
             then load the registry data in structures and radix trees"""
 
@@ -80,7 +86,8 @@ class PollingHandler(FileSystemEventHandler):
                 self.list_funcs = parse_registry_data(**reg_kwargs)
                 logger.info(" Completed parsing registry data")
 
-        if args.bgp_path == os.path.dirname(event.src_path):
+        if bgp_dir == os.path.dirname(event.src_path):
+
             """If an event is triggering bgp path, read files
              and load them into radix trees """
 
@@ -92,12 +99,12 @@ class PollingHandler(FileSystemEventHandler):
             '''
 
             time.sleep(3)
-            logger.info("File %s has finished copying" % event.src_path)
             filepath = os.path.splitext(event.src_path)[0]
             file_dir = os.path.dirname(filepath)
             filename = os.path.basename(filepath)
             filename = file_dir+"/"+filename[1:]
-            logger.info("BGP file %s for processing" % filename)
+
+            logger.info(" BGP file %s for processing" % filename)
 
             self.mrt_files.append(filename)
             input_kwargs = {"files": self.mrt_files}
@@ -106,12 +113,12 @@ class PollingHandler(FileSystemEventHandler):
             bgp_kwargs["rib"] = self.rib
 
             actual_time = strftime("%Y-%m-%d-%H-%M-%S", localtime())
-            file_name = "hijacks-" + actual_time + ".log"
+            hijack_file = "hijacks-" + actual_time + ".log"
+            result_dir = make_dir(script_dir, "results")
+            hijacks_path = result_dir+"/"+hijack_file
 
-            hijacks_path = make_dir("results", file_name)
+            logger.info(" BGP processing started on file %s : " % filename)
             execution_time = time.time()
-
-            logger.info(" BGP processing started")
             with open(hijacks_path, "w") as outfile:
                 for conflict in detect_hijacks(self.list_funcs, **bgp_kwargs):
                     if conflict["type"] == "ABNORMAL":
@@ -134,29 +141,35 @@ if __name__ == "__main__":
                         default="mabo")
 
     parser.add_argument("--registry-path",
-                        help="enter the path for registry data")
+                        help="enter a directory name for registry")
 
     parser.add_argument("--bgp-path",
-                        help="enter the path for bgp rib and update files")
+                        help="enter a directory name for bgp")
 
     parser.add_argument("-v", "--verbose", action="store_true",
                         help="more logging")
 
     args = parser.parse_args()
 
-    logger.info(' start logging')
+    logger.info(' BGP Process started')
 
-    targets = [args.registry_path, args.bgp_path]
+    registry_dir = make_dir(script_dir, args.registry_path)
+    bgp_dir = make_dir(script_dir, args.bgp_path)
+
+    targets = [registry_dir, bgp_dir]
     event_handler = PollingHandler()
     observer = Observer()
     observers = []
 
     for path in targets:
         targetPath = str(path)
+        # import pdb;pdb.set_trace()
         observer.schedule(event_handler, targetPath, recursive=False)
         observers.append(observer)
 
     observer.start()
+    dst_dir = script_dir+"/registry"
+    generate_registry_events(script_dir, dst_dir)
 
     try:
         while True:
@@ -165,3 +178,4 @@ if __name__ == "__main__":
         observer.stop()
 
     observer.join()
+    logger.info("BGP Process Killed")
