@@ -157,6 +157,10 @@ if __name__ == "__main__":
     bgp_dir = make_dir(script_dir, args.bgp_path)
 
     targets = [registry_dir, bgp_dir]
+    logger.info("watch directory for BGP data: %s" % bgp_dir)
+    print(("watch directory for BGP data: %s" % bgp_dir))
+    print("Please mention the above path in BGP router for rsync")
+
     event_handler = PollingHandler()
     observer = Observer()
     observers = []
