@@ -1,11 +1,11 @@
-# python notifybgp.py --data-dir /home/bsd/working --bgp-rib bgp_rib --bgp-updates bgp_updates &
+# python notifybgp.py --bgp-rib bgp_rib --bgp-updates bgp_updates &
 
 from __future__ import print_function
 
 import argparse
 import logging
 import os
-from subprocess import check_call
+from subprocess import check_call, CalledProcessError
 import time
 
 from watchdog.events import FileSystemEventHandler
@@ -39,14 +39,26 @@ file_handler.setFormatter(formatter)
 logger.addHandler(file_handler)
 
 
-def return_command(src_path):
+def gzip_file(src_path):
 
     gzip_cmd = "gzip " + src_path
-    dst_path = "pramati@103.54.143.6:/home/pramati/"
-    rsync_cmd = 'rsync -avz -e "ssh -i /auth/tabi.pem -p 1128" ' + src_path+".gz"+" " + dst_path
-    command = gzip_cmd + " ; " + rsync_cmd
+    while True:
+        try:
+            check_call(gzip_cmd, shell=True)
+        except CalledProcessError:
+            continue
+        break
 
-    return command
+    logger.info("%s file is gzip successfully" % src_path)
+    return src_path+".gz"
+
+
+def rsync_file(src_file):
+
+    dst_path = "pramati@103.54.143.6:/home/pramati/"
+    rsync_cmd = 'rsync -avz -e "ssh -i /auth/tabi.pem -p 1128" '+src_file+" "+dst_path
+
+    check_call(rsync_cmd, shell=True)
 
 
 class PollingHandler(FileSystemEventHandler):
@@ -69,10 +81,10 @@ class PollingHandler(FileSystemEventHandler):
 
                 logger.info(" %s file generated" % event.src_path)
 
-                command = return_command(event.src_path)
-                check_call(command, shell=True)
+                gz_file = gzip_file(event.src_path)
+                rsync_file(gz_file)
 
-                logger.info(" %s file is gziped and rsynced to tabi machine" % event.src_path)
+                logger.info(" %s file rsynced successfully" % gz_file)
 
             if updates_path == os.path.dirname(event.src_path):
                 """If an event is triggering bgp path, read files
@@ -85,17 +97,14 @@ class PollingHandler(FileSystemEventHandler):
 
                 logger.info(" %s file generated" % event.src_path)
 
-                command = return_command(event.src_path)
-                check_call(command, shell=True)
+                gz_file = gzip_file(event.src_path)
+                rsync_file(gz_file)
 
-                logger.info(" %s file is gziped and rsynced to tabi machine" % event.src_path)
+                logger.info(" %s file rsynced successfully" % gz_file)
 
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
-
-    parser.add_argument("--data-dir",
-                        help="enter the path for RIB and Updates folder")
 
     parser.add_argument("--bgp-rib",
                         help="enter the name for BGP RIB data folder")
@@ -105,8 +114,11 @@ if __name__ == "__main__":
 
     args = parser.parse_args()
 
-    rib_path = make_dir(args.data_dir, args.bgp_rib)
-    updates_path = make_dir(args.data_dir, args.bgp_updates)
+    rib_path = make_dir(script_dir, args.bgp_rib)
+    print("Path for RIB files: %s" % rib_path)
+    updates_path = make_dir(script_dir, args.bgp_updates)
+    print("Path for Update files: %s" % updates_path)
+    print("These path should be configured in BGP router")
 
     targets = [rib_path, updates_path]
 
