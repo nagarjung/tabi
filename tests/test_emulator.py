@@ -2,7 +2,7 @@ import contextlib
 import json
 
 from tabi.annotate import annotate_with_type
-from tabi.emulator import detect_conflicts, detect_hijacks
+from tabi.emulator import detect_conflicts, detect_hijacks, generate_registry_events, generate_rib_event
 from tabi.rib import EmulatedRIB
 
 
@@ -200,5 +200,20 @@ def test_detect_hijacks_rib_update():
         pass
 
 
+def test_generate_registry_events():
+    """Check if event are generated in the destination directory"""
+
+    src_dir = "/home/nagarjung/nagarjun/foss/tabi/tests/src_dir"
+    dst_dir = "/home/nagarjung/nagarjun/foss/tabi/tests/dest_dir"
+
+    generate_registry_events(src_dir, dst_dir)
+
+
+def test_generate_rib_event():
+
+    path = "/home/nagarjung/nagarjun/venv_tabi/tabi/dumps"
+    generate_rib_event(path)
+
 if __name__ == '__main__':
-    test_detect_multiple_conflicts()
+    # test_generate_registry_events()
+    test_generate_rib_event()

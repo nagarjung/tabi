@@ -167,7 +167,6 @@ if __name__ == "__main__":
 
     for path in targets:
         targetPath = str(path)
-        # import pdb;pdb.set_trace()
         observer.schedule(event_handler, targetPath, recursive=False)
         observers.append(observer)
 
