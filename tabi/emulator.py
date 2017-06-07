@@ -1,7 +1,4 @@
-# -*- coding: utf-8 -*-
-# Copyright (C) 2016 ANSSI
-# This file is part of the tabi project licensed under the MIT license.
-
+import glob
 import logging
 import os
 import shutil
@@ -46,23 +43,27 @@ file_handler.setFormatter(formatter)
 logger.addHandler(file_handler)
 
 
-def generate_registry_events(src_dir, dst_dir):
+def generate_registry_events(src_path, dst_path):
+    """ Generate a Registry event by copying to registry watch directory """
 
-    for dst_file in os.listdir(dst_dir):
-        file_path = os.path.join(dst_dir, dst_file)
-        try:
-            if os.path.isfile(file_path):
-                os.unlink(file_path)
+    dst_files = glob.glob(dst_path+'/*')
+    for dst_file in dst_files:
+        os.unlink(dst_file)
 
-        except Exception as e:
-            logger.info("File %s cannot be deleted" % e)
-
-    src_files = os.listdir(src_dir)
+    src_files = glob.glob(src_path+'/*.csv')
     for src_file in src_files:
-        full_file_name = os.path.join(src_dir, src_file)
-        if full_file_name.endswith(".csv"):
-            if os.path.isfile(full_file_name):
-                shutil.copy(full_file_name, dst_dir)
+        shutil.copy(src_file, dst_path)
+
+
+def generate_rib_event(path):
+    """ Generate a RIB event by loading the latest RIB file from current directory """
+
+    rib_files = glob.glob(path+"/rib*")
+    latest_file = max(rib_files, key=os.path.getctime)
+    file_name = os.path.basename(latest_file)
+    shutil.move(latest_file, "/tmp")
+    shutil.copy("/tmp/"+file_name, path)
+    os.remove("/tmp/"+file_name)
 
 
 def process_message(rib, collector, message, is_watched=None, data=None):
@@ -91,7 +92,6 @@ def detect_conflicts(collector, files, opener=default_opener,
     """
     Get a list of conflicts (hijacks without annotation) from the BGP files
     (bviews and updates).
-
     :param collector: Name of the collector the files come from
     :param files: List of files to process
     :param opener: Function to use in order to open the files
@@ -183,7 +183,6 @@ def detect_hijacks(funcs, collector, files,
                    format=mabo_format, is_watched=None, rib=None):
     """
     Detect BGP hijacks from `files' and annotate them using metadata.
-
     :param collector: Name of the collector the BGP files come from
     :param files: List of BGP files to process
     :param irr_org_file: CSV file containing irr,organisation,asn
