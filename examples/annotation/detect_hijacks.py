@@ -12,7 +12,8 @@ import time
 
 from time import localtime, strftime
 from tabi.rib import EmulatedRIB
-from tabi.emulator import parse_registry_data, detect_hijacks, make_dir, generate_registry_events
+from tabi.emulator import parse_registry_data, detect_hijacks, make_dir, \
+    generate_registry_events, generate_rib_event
 from watchdog.events import FileSystemEventHandler
 from watchdog.observers import Observer
 
@@ -106,6 +107,7 @@ class PollingHandler(FileSystemEventHandler):
 
             logger.info(" BGP file %s for processing" % filename)
 
+            self.mrt_files = []
             self.mrt_files.append(filename)
             input_kwargs = {"files": self.mrt_files}
             input = choose_input(args.input)
@@ -173,6 +175,7 @@ if __name__ == "__main__":
     observer.start()
     dst_dir = script_dir+"/registry"
     generate_registry_events(script_dir, dst_dir)
+    generate_rib_event(bgp_dir)
 
     try:
         while True:

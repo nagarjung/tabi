@@ -79,7 +79,7 @@ def generate_registry_events(src_path, dst_path):
 
 
 def generate_rib_event(path):
-    """ Generate a RIB event by loading the RIB file from current directory """
+    """ Generate a RIB event by loading the latest RIB file from current directory """
 
     rib_files = glob.glob(path+"/rib*")
     latest_file = max(rib_files, key=os.path.getctime)
