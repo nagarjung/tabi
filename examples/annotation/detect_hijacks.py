@@ -10,10 +10,9 @@ import logging
 import os
 import time
 
-from time import localtime, strftime
 from tabi.rib import EmulatedRIB
 from tabi.emulator import parse_registry_data, detect_hijacks, make_dir, \
-    generate_registry_events, generate_rib_event
+    generate_registry_events, generate_rib_event, create_log_file
 from watchdog.events import FileSystemEventHandler
 from watchdog.observers import Observer
 
@@ -117,14 +116,11 @@ class PollingHandler(FileSystemEventHandler):
             bgp_kwargs = input(args.collector, **input_kwargs)
             bgp_kwargs["rib"] = self.rib
 
-            actual_time = strftime("%Y-%m-%d-%H-%M-%S", localtime())
-            hijack_file = "hijacks-" + actual_time + ".log"
-            result_dir = make_dir(script_dir, "results")
-            hijacks_path = result_dir+"/"+hijack_file
+            hijackspath = create_log_file(event.src_path)
 
             logger.info(" BGP processing started on file %s : " % filename)
             execution_time = time.time()
-            with open(hijacks_path, "w") as outfile:
+            with open(hijackspath, "w") as outfile:
                 for conflict in detect_hijacks(self.list_funcs, **bgp_kwargs):
                     if conflict["type"] == "ABNORMAL":
                         json.dump(conflict, outfile)
@@ -172,13 +168,14 @@ if __name__ == "__main__":
 
     for path in targets:
         targetPath = str(path)
-        # import pdb;pdb.set_trace()
         observer.schedule(event_handler, targetPath, recursive=False)
         observers.append(observer)
 
     observer.start()
+
     dst_dir = script_dir+"/registry"
     generate_registry_events(script_dir, dst_dir)
+
     generate_rib_event(bgp_dir)
 
     try:

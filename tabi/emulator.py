@@ -16,6 +16,7 @@ from tabi.annotate import annotate_if_relation, annotate_if_route_objects, \
     annotate_if_roa, annotate_if_direct, annotate_with_type, \
     fill_relation_struct, fill_ro_struct, fill_roa_struct
 from tabi.helpers import default_opener
+from time import localtime, strftime
 
 script_dir = os.path.dirname(os.path.abspath(__main__.__file__))
 
@@ -64,6 +65,23 @@ def generate_rib_event(path):
     shutil.move(latest_file, "/tmp")
     shutil.copy("/tmp/"+file_name, path)
     os.remove("/tmp/"+file_name)
+
+
+def create_log_file(filepath):
+    """ Create a log file and return file path"""
+
+    result_dir = make_dir(script_dir, "results")
+    actual_time = strftime("%H:%M-%d-%m-%Y", localtime())
+
+    if os.path.basename(filepath).startswith("r"):
+        hijack_file = "rib-" + actual_time + ".log"
+
+    elif os.path.basename(filepath).startswith("u"):
+        hijack_file = "updates-" + actual_time + ".log"
+
+    hijackspath = result_dir + "/" + hijack_file
+
+    return hijackspath
 
 
 def process_message(rib, collector, message, is_watched=None, data=None):
