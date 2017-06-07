@@ -120,13 +120,15 @@ class PollingHandler(FileSystemEventHandler):
 
             logger.info(" BGP processing started on file %s : " % filename)
             execution_time = time.time()
+            hijacks_count = 0
             with open(hijackspath, "w") as outfile:
                 for conflict in detect_hijacks(self.list_funcs, **bgp_kwargs):
                     if conflict["type"] == "ABNORMAL":
+                        hijacks_count += 1
                         json.dump(conflict, outfile)
                         outfile.write('\n')
 
-            logger.info(" Hijacks completed")
+            logger.info(" Hijacks completed with count: %s" % hijacks_count)
             logger.info(" Total execution time in seconds : %s" % (time.time() - execution_time))
             logger.info("-----------------------------------------------------------------------")
 
@@ -158,7 +160,8 @@ if __name__ == "__main__":
     bgp_dir = make_dir(script_dir, args.bgp_path)
 
     targets = [registry_dir, bgp_dir]
-    logger.info("watch directory for BGP data: %s" % bgp_dir)
+
+    logger.info(" watch directory for BGP data: %s" % bgp_dir)
     print(("watch directory for BGP data: %s" % bgp_dir))
     print("Please mention the above path in BGP router for rsync")
 
@@ -185,4 +188,4 @@ if __name__ == "__main__":
         observer.stop()
 
     observer.join()
-    logger.info("BGP Process Killed")
+    logger.info(" BGP Process Killed")
