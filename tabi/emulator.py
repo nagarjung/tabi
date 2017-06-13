@@ -9,6 +9,7 @@ from functools import partial
 from itertools import chain
 from collections import deque
 
+from logstash_formatter import LogstashFormatterV1
 from tabi.rib import EmulatedRIB, Radix
 from tabi.core import default_route, route, withdraw, hijack
 from tabi.input.mabo import mabo_format
@@ -36,10 +37,11 @@ file_name = "bgp.log"
 log_file = log_path+"/"+file_name
 
 logger = logging.getLogger("emulator")
-logger.setLevel(logging.DEBUG)
-formatter = logging.Formatter('%(asctime)s:%(name)s:%(message)s')
+logger.setLevel(logging.INFO)
+# formatter = logging.Formatter('%(asctime)s:%(name)s:%(message)s')
+formatter = LogstashFormatterV1()
 file_handler = logging.FileHandler(log_file)
-file_handler.setLevel(logging.DEBUG)
+file_handler.setLevel(logging.INFO)
 file_handler.setFormatter(formatter)
 logger.addHandler(file_handler)
 
@@ -143,9 +145,10 @@ def detect_conflicts(collector, files, opener=default_opener,
             break
         else:
             bviews.append(bview_file)
-            logger.info(" Processed and loaded BGP data into memory")
+            logger.debug(" Processed and loaded BGP data into memory")
 
-    logger.info(" Time for processing BGP data in seconds: %s" % (time.time() - process_time))
+    # logger.info(" Time for processing BGP data in seconds: %s" % (time.time() - process_time))
+    logger.info({"file_process_time": (time.time() - process_time)})
 
     if len(bviews) == 0 and len(rib.nodes()) == 0:
         # In case of pre-populated RIB, supplying rib records again
@@ -154,8 +157,8 @@ def detect_conflicts(collector, files, opener=default_opener,
 
     # play all BGP updates to detect BGP conflicts
 
-    logger.info(" starting Hijacks detection")
-    for file in chain(bviews, queue):
+    logger.debug(" starting Hijacks detection")
+    for file in chain(queue):
         with opener(file) as f:
             for data in f:
                 for msg in format(collector, data):
@@ -171,7 +174,7 @@ def parse_registry_data(irr_org_file=None,
                         irr_mnt_file=None,
                         irr_ro_file=None,
                         rpki_roa_file=None):
-    logger.info(" loading metadata...")
+    logger.debug(" loading metadata...")
     funcs = [annotate_if_direct]
 
     if irr_org_file is not None and irr_mnt_file is not None:
