@@ -10,6 +10,7 @@ import logging
 import os
 import time
 
+from logstash_formatter import LogstashFormatterV1
 from tabi.rib import EmulatedRIB
 from tabi.emulator import parse_registry_data, detect_hijacks, make_dir, \
     generate_registry_events, generate_rib_event, create_log_file
@@ -18,16 +19,17 @@ from watchdog.observers import Observer
 
 script_dir = os.path.dirname(os.path.abspath(__file__))
 
-logger = logging.getLogger(__name__)
-
 log_dir = make_dir(script_dir, "bgp_logs")
 file_name = "bgp.log"
 log_file = log_dir+"/"+file_name
 
-logger.setLevel(logging.DEBUG)
-formatter = logging.Formatter('%(asctime)s:%(name)s:%(message)s')
+logger = logging.getLogger(__name__)
+formatter = LogstashFormatterV1()
 file_handler = logging.FileHandler(log_file)
+
+logger.setLevel(logging.DEBUG)
 file_handler.setLevel(logging.DEBUG)
+
 file_handler.setFormatter(formatter)
 logger.addHandler(file_handler)
 
@@ -84,7 +86,7 @@ class PollingHandler(FileSystemEventHandler):
 
             if len(reg_kwargs) == 4:
                 self.list_funcs = parse_registry_data(**reg_kwargs)
-                logger.info(" Completed parsing registry data")
+                logger.debug(" Completed parsing registry data")
 
         if bgp_dir == os.path.dirname(event.src_path):
 
@@ -107,7 +109,7 @@ class PollingHandler(FileSystemEventHandler):
             else:
                 filename = event.src_path
 
-            logger.info(" BGP file %s for processing" % filename)
+            logger.debug(" BGP file %s for processing" % filename)
 
             self.mrt_files = []
             self.mrt_files.append(filename)
@@ -118,7 +120,8 @@ class PollingHandler(FileSystemEventHandler):
 
             hijackspath = create_log_file(filename)
 
-            logger.info(" BGP processing started on file %s : " % filename)
+            logger.debug(" BGP processing started on file %s : " % filename)
+
             execution_time = time.time()
             hijacks_count = 0
             with open(hijackspath, "w") as outfile:
@@ -128,9 +131,8 @@ class PollingHandler(FileSystemEventHandler):
                         json.dump(conflict, outfile)
                         outfile.write('\n')
 
-            logger.info(" Hijacks completed with count: %s" % hijacks_count)
-            logger.info(" Total execution time in seconds : %s" % (time.time() - execution_time))
-            logger.info("-----------------------------------------------------------------------")
+            logger.debug(" Hijacks detection completed")
+            logger.info({"hijacks_count": hijacks_count, "total_execution_time": (time.time() - execution_time)})
 
 
 if __name__ == "__main__":
@@ -161,7 +163,7 @@ if __name__ == "__main__":
 
     targets = [registry_dir, bgp_dir]
 
-    logger.info(" watch directory for BGP data: %s" % bgp_dir)
+    logger.debug(" watch directory for BGP data: %s" % bgp_dir)
     print(("watch directory for BGP data: %s" % bgp_dir))
     print("Please mention the above path in BGP router for rsync")
 
@@ -179,7 +181,7 @@ if __name__ == "__main__":
     dst_dir = script_dir+"/registry"
     generate_registry_events(script_dir, dst_dir)
 
-    # generate_rib_event(bgp_dir)
+    generate_rib_event(bgp_dir)
 
     try:
         while True:

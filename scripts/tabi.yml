@@ -25,7 +25,7 @@
     tags: build
 
   - name: Running tabi
-    shell: python examples/annotation/detect_hijacks.py -c local -i mabo --registry-path registry --bgp-path bgp &
+    shell: nohup python examples/annotation/detect_hijacks.py -c local -i mabo --registry-path registry --bgp-path bgp &
     args:
       chdir: /home/pramati/tabi
 #    environment:
