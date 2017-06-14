@@ -64,12 +64,31 @@ def gunzip_fork(filename, output):
     return sp
 
 
+def mabo_location(program):
+    def is_exe(fpath):
+        return os.path.isfile(fpath) and os.access(fpath, os.X_OK)
+
+    fpath, fname = os.path.split(program)
+    if fpath:
+        if is_exe(program):
+            return program
+    else:
+        for path in os.environ["PATH"].split(os.pathsep):
+            path = path.strip('"')
+            exe_file = os.path.join(path, program)
+            if is_exe(exe_file):
+                return exe_file
+    return None
+
+
 def mabo_fork(filename, output=None):
     """
     Call MABO_PATH on a given MRT dump.
     Return the subprocess handle.
     """
-    MABO_PATH = os.getenv("MABO_PATH", "mabo")
+
+    # MABO_PATH = os.getenv("MABO_PATH", "/home/nagarjung/nagarjun/projetcs/mabo/mabo")
+    MABO_PATH = os.getenv("MABO_PATH", "/home/pramati/mabo/mabo")
 
     # Check if files exists
     if not os.path.exists(filename):

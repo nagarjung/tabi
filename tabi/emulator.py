@@ -64,10 +64,11 @@ def generate_rib_event(path):
 
     rib_files = glob.glob(path+"/rib*")
     latest_file = max(rib_files, key=os.path.getctime)
-    file_name = os.path.basename(latest_file)
-    shutil.move(latest_file, "/tmp")
-    shutil.copy("/tmp/"+file_name, path)
-    os.remove("/tmp/"+file_name)
+    filename = os.path.basename(latest_file)
+    temp_dir = make_dir(script_dir, "rib_event_dir")
+    shutil.move(latest_file, temp_dir)
+    shutil.copy(temp_dir+"/"+filename, path)
+    os.remove(temp_dir+"/"+filename)
 
 
 def create_log_file(filepath):

@@ -1,39 +1,48 @@
 ---
 - hosts: tabi
   tasks:
-  - name: Kill the existing Process
-    shell: kill `ps -ef | grep detect |grep -v auto|awk '{print $2}'`
-    ignore_errors: yes
-    tags: pskill
-
   - name: Creating Tabi Directory
     file:
-      path: '{{ tabi_dest_loc }}'
+      path: "{{ ansible_user_dir }}/tabi"
       state: directory
     tags: dir
 
+  - name: supervisor_stop
+    supervisorctl:
+      name: tabi
+      state: stopped
+    become: true
+    ignore_errors: yes
+    tags: stop
+
   - name: Copying Build Artifacts
     synchronize:
-      src: '{{ tabi_src_loc }}'
-      dest: '{{ tabi_dest_loc }}'
+      src: "{{ tabi_src }}"
+      dest: "{{ ansible_user_dir }}/tabi"
+
+  - name: copy config file
+    template:
+      src: "templates/tabi-conf.j2"
+      dest: "/etc/supervisor/conf.d/tabi.conf"
+    become: true
 
   - name: Build Tabi
     shell: python setup.py install
     args:
-      chdir: /home/pramati/tabi
+      chdir: "{{ ansible_user_dir }}/tabi"
     become: true
     tags: build
 
-  - name: Running tabi
-    shell: nohup python examples/annotation/detect_hijacks.py -c local -i mabo --registry-path registry --bgp-path bgp &
-    args:
-      chdir: /home/pramati/tabi
-#    environment:
-#      PYTHONPATH: /home/pramati/tabi
-    tags: run-hijack
+  - name: supervisorctl reread
+    supervisorctl:
+      name: tabi
+      state: present
+    become: true
+    tags: reread
 
-  - name: Fetching Logs
-    fetch:
-      src: '{{ tabi_log_loc }}'
-      dest: '{{ tabi_report_loc }}'
-    tags: logs
+  - name: supervisor start
+    supervisorctl:
+      name: tabi
+      state: started
+    become: true
+    tags: start

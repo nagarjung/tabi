@@ -28,6 +28,7 @@ formatter = LogstashFormatterV1()
 file_handler = logging.FileHandler(log_file)
 
 logger.setLevel(logging.DEBUG)
+# formatter = logging.Formatter('%(asctime)s:%(name)s:%(message)s')
 file_handler.setLevel(logging.DEBUG)
 
 file_handler.setFormatter(formatter)
