@@ -1,16 +1,23 @@
 ---
 - hosts: tabi
+  become: true
+  become_user: root
   tasks:
-  - name: Kill the existing Process
-    shell: kill `ps -ef | grep detect |grep -v auto|awk '{print $2}'`
-    ignore_errors: yes
-    tags: pskill
-
   - name: Creating Tabi Directory
     file:
       path: '{{ tabi_dest_loc }}'
       state: directory
     tags: dir
+
+  - name: supervisor_stop
+    supervisorctl:
+      name: tabi
+      state: stopped
+    tags: stop
+
+  - name: Modifying Supervisor Directory Location
+    ini_file: dest=/etc/supervisor/conf.d/tabi.conf section="program:tabi" option=directory value='{{tabi_dest_loc}}' backup=yes
+    tags: configuration
 
   - name: Copying Build Artifacts
     synchronize:
@@ -24,16 +31,8 @@
     become: true
     tags: build
 
-  - name: Running tabi
-    shell: nohup python examples/annotation/detect_hijacks.py -c local -i mabo --registry-path registry --bgp-path bgp &
-    args:
-      chdir: /home/pramati/tabi
-#    environment:
-#      PYTHONPATH: /home/pramati/tabi
-    tags: run-hijack
-
-  - name: Fetching Logs
-    fetch:
-      src: '{{ tabi_log_loc }}'
-      dest: '{{ tabi_report_loc }}'
-    tags: logs
+  - name: supervisor_start
+    supervisorctl:
+      name: tabi
+      state: started
+    tags: start
