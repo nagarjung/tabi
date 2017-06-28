@@ -182,7 +182,10 @@ if __name__ == "__main__":
     dst_dir = script_dir+"/registry"
     generate_registry_events(script_dir, dst_dir)
 
-    generate_rib_event(bgp_dir)
+    try:
+        generate_rib_event(bgp_dir)
+    except Exception:
+        logger.exception(" RIB event generation failed, RIB file not found ")
 
     try:
         while True:
