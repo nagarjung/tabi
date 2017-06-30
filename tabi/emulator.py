@@ -6,7 +6,7 @@ import time
 import __main__
 
 from functools import partial
-from itertools import chain
+# from itertools import chain
 from collections import deque
 
 from logstash_formatter import LogstashFormatterV1
@@ -38,6 +38,7 @@ log_file = log_path+"/"+file_name
 
 logger = logging.getLogger("emulator")
 formatter = LogstashFormatterV1()
+# formatter = logging.Formatter('%(asctime)s:%(name)s:%(message)s')
 file_handler = logging.FileHandler(log_file)
 
 logger.setLevel(logging.DEBUG)
@@ -126,7 +127,7 @@ def detect_conflicts(collector, files, opener=default_opener,
     queue = deque(files)
 
     # insert initial bview in the RIB
-    bviews = []
+    # bviews = []
     process_time = time.time()
     while len(queue):
         try:
@@ -146,21 +147,23 @@ def detect_conflicts(collector, files, opener=default_opener,
             queue.appendleft(bview_file)
             break
         else:
-            bviews.append(bview_file)
+            # bviews.append(bview_file)
             logger.debug(" Processed and loaded BGP data into memory")
 
     logger.info({"file_process_time": (time.time() - process_time)})
 
-    if len(bviews) == 0 and len(rib.nodes()) == 0:
-        # In case of pre-populated RIB, supplying rib records again
-        # is not a requirement. Can also be invoked with only the update records.
-        raise ValueError("no bviews were loaded")
+    # if len(bviews) == 0 and len(rib.nodes()) == 0:
+    #     # In case of pre-populated RIB, supplying rib records again
+    #     # is not a requirement. Can also be invoked with only the update records.
+    #     raise ValueError("no bviews were loaded")
 
     # play all BGP updates to detect BGP conflicts
 
     logger.debug(" starting Hijacks detection")
-    for file in chain(bviews, queue):
-        with opener(file) as f:
+    # for file in chain(bviews, queue):
+    while len(queue):
+        update_file = queue.popleft()
+        with opener(update_file) as f:
             for data in f:
                 for msg in format(collector, data):
                     default, _, conflicts = process_message(
