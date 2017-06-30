@@ -1,3 +1,5 @@
+from __future__ import print_function
+
 import glob
 import logging
 import os
@@ -6,7 +8,6 @@ import time
 import __main__
 
 from functools import partial
-# from itertools import chain
 from collections import deque
 
 from logstash_formatter import LogstashFormatterV1
@@ -18,6 +19,7 @@ from tabi.annotate import annotate_if_relation, annotate_if_route_objects, \
     fill_relation_struct, fill_ro_struct, fill_roa_struct
 from tabi.helpers import default_opener
 from time import localtime, strftime
+
 
 script_dir = os.path.dirname(os.path.abspath(__main__.__file__))
 
@@ -89,6 +91,12 @@ def create_log_file(filepath):
     return hijackspath
 
 
+def create_parsed_file(filedir, filename):
+    actual_time = strftime("%H:%M-%d-%m-%Y", localtime())
+    fullname = filedir+"/"+filename+"-"+actual_time
+    return fullname
+
+
 def process_message(rib, collector, message, is_watched=None, data=None):
     """
     Modify the RIB according to the BGP `message'.
@@ -126,8 +134,6 @@ def detect_conflicts(collector, files, opener=default_opener,
         rib = EmulatedRIB()
     queue = deque(files)
 
-    # insert initial bview in the RIB
-    # bviews = []
     process_time = time.time()
     while len(queue):
         try:
@@ -147,25 +153,19 @@ def detect_conflicts(collector, files, opener=default_opener,
             queue.appendleft(bview_file)
             break
         else:
-            # bviews.append(bview_file)
             logger.debug(" Processed and loaded BGP data into memory")
 
     logger.info({"file_process_time": (time.time() - process_time)})
-
-    # if len(bviews) == 0 and len(rib.nodes()) == 0:
-    #     # In case of pre-populated RIB, supplying rib records again
-    #     # is not a requirement. Can also be invoked with only the update records.
-    #     raise ValueError("no bviews were loaded")
-
-    # play all BGP updates to detect BGP conflicts
-
     logger.debug(" starting Hijacks detection")
-    # for file in chain(bviews, queue):
+
+    update_dir = make_dir(script_dir, "parsed_update_data")
+    parsed_update_file = create_parsed_file(update_dir, "update")
     while len(queue):
         update_file = queue.popleft()
-        with opener(update_file) as f:
+        with opener(update_file) as f, open(parsed_update_file, 'w') as g:
             for data in f:
                 for msg in format(collector, data):
+                    print(data, file=g)
                     default, _, conflicts = process_message(
                         rib, collector, msg, is_watched)
                     if len(default) > 0:
