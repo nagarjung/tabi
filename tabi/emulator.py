@@ -165,7 +165,7 @@ def detect_conflicts(collector, files, opener=default_opener,
         with opener(update_file) as f, open(parsed_update_file, 'w') as g:
             for data in f:
                 for msg in format(collector, data):
-                    print(data, file=g)
+                    print(msg, file=g)
                     default, _, conflicts = process_message(
                         rib, collector, msg, is_watched)
                     if len(default) > 0:
