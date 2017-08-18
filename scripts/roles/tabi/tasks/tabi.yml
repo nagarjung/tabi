@@ -1,0 +1,94 @@
+---
+  - name: Creating Tabi Directory
+    file:
+      path: "{{ ansible_user_dir }}/tabi"
+      state: directory
+    tags: dir
+
+  - name: supervisor_stop
+    supervisorctl:
+      name: tabi
+      state: stopped
+    become: true
+    ignore_errors: yes
+    tags: stop
+
+  - name: Copying Build Artifacts
+    synchronize:
+      src: "{{ tabi_src }}"
+      dest: "{{ ansible_user_dir }}/tabi"
+
+  - name: copy config file
+    template:
+      src: "templates/tabi-conf.j2"
+      dest: "/etc/supervisor/conf.d/tabi.conf"
+    become: true
+    tags: v2
+     
+
+  - name: Build Tabi
+    shell: python setup.py install
+    args:
+      chdir: "{{ ansible_user_dir }}/tabi"
+    become: true
+    tags: build
+
+  - name: supervisorctl reread
+    supervisorctl:
+      name: tabi
+      state: present
+    become: true
+    tags: reread
+
+  - name: supervisor start
+    supervisorctl:
+      name: tabi
+      state: started
+    become: true
+    tags: start
+
+  - name: Including mysql
+    include: install_mysql.yml
+    become: true
+    tags: v2
+
+  - name: Including createdb yaml
+    include: create_db.yml
+    tags: v2
+
+  - name: Including java installation yaml
+    include: java.yml
+    become: true
+    tags: v2
+
+  - name: Including sbt yaml
+    include: sbt.yml
+    tags: v2
+
+  - name: supervisorctl reread
+    supervisorctl:
+      name: HistoryBasedFileProcessingJob
+      state: present
+    become: true
+    tags: v2
+
+  - name: supervisorctl reread
+    supervisorctl:
+      name: HistoryBasedValidationApi
+      state: present
+    become: true
+    tags: v2
+
+  - name: supervisor start
+    supervisorctl:
+      name: HistoryBasedFileProcessingJob
+      state: started
+    become: true
+    tags: v2
+
+  - name: supervisor start
+    supervisorctl:
+      name: HistoryBasedValidationApi
+      state: started
+    become: true
+    tags: v2
