@@ -92,7 +92,7 @@ def create_log_file(filepath):
 
 
 def create_parsed_file(filedir, filename):
-    actual_time = strftime("%H:%M-%d-%m-%Y", localtime())
+    actual_time = strftime("%H-%M-%d-%m-%Y", localtime())
     fullname = filedir+"/"+filename+"-"+actual_time
     return fullname
 
