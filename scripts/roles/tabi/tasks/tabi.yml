@@ -79,16 +79,21 @@
     become: true
     tags: v2
 
-  - name: supervisor start
+  - name: supervisor starting service
     supervisorctl:
       name: HistoryBasedFileProcessingJob
       state: started
     become: true
     tags: v2
 
-  - name: supervisor start
+  - name: supervisor starting service
     supervisorctl:
       name: HistoryBasedValidationApi
       state: started
     become: true
     tags: v2
+
+  - name: Updating and restarting the services with changed conf files
+    shell: supervisorctl update
+    become: true
+    tags: v3
