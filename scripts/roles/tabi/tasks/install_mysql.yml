@@ -1,0 +1,29 @@
+---
+
+ - name: Set MySQL root password before installing
+   debconf: name='mysql-server' question='mysql-server/root_password' value='{{ mysql_password | quote}}' vtype='password'
+
+ - name: Confirm MySQL root password before installing
+   debconf: name='mysql-server' question='mysql-server/root_password_again' value='{{ mysql_password | quote}}' vtype='password'
+
+ - name: Install the Python MySQLB module
+   apt: name=python-mysqldb state=installed update_cache=yes
+
+ - name: Install MySQL
+   apt: package={{ item }} state=installed force=yes update_cache=yes
+   with_items:
+   - mysql-server
+   - mysql-client
+   
+   notify:
+   - Reloading Mysql
+
+ - mysql_user:
+    login_user: "{{ mysql_user }}"
+    login_password: "{{ mysql_password }}"
+    name: "{{ mysql_user }}"
+    priv: '*.*:ALL'
+    state: present
+#    name: "{{ mysql_user }}"
+#    password: "{{ mysql_password }}" 
+

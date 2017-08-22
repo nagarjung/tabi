@@ -1,0 +1,22 @@
+db {
+  driver = "slick.driver.MySQLDriver$"
+
+  db {
+
+    url = "jdbc:mysql://{{ mysql_db }}:{{ mysql_port }}/{{ mysql_db_name }}?user={{ mysql_user }}&password={{ mysql_password }}"
+    driver = com.mysql.jdbc.Driver
+    maxThreads = 5
+
+  }
+}
+
+spark{
+
+  streaming{
+
+    directoryToMonitor = "{{ directoryToMonitor }}"
+    microBatchTime = 15
+
+  }
+
+}

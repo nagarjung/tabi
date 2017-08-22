@@ -1,0 +1,12 @@
+---
+mysql_db: localhost
+mysql_port: 3306
+mysql_db_name: bgphistorycache
+mysql_table_name: BGP_UPDATE_HISTORY_CACHE
+mysql_user: root
+mysql_password: Rules@123
+directoryToMonitor: "{{ ansible_user_dir }}/tabi/examples/annotation/parsed_update_data"
+sbt_directory: "{{ ansible_user_dir }}/tabi"
+JAVA_VARIABLE: "$JAVA_OPTS -Dhttp.proxyHost=proxy -Dhttp.proxyPort=port -Dhttps.proxyHost=proxy -Dhttps.proxyPort=port" 
+supervisord_pid_location: /tmp/supervisord.pid
+supervisord_bin_location: /usr/local/bin

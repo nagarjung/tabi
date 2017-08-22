@@ -1,0 +1,50 @@
+---
+- name: Add SBT repo
+  apt_repository: repo='deb https://dl.bintray.com/sbt/debian /' state=present update_cache=no
+  become: true
+
+- name: Add SBT repo key
+  apt_key: keyserver='hkp://keyserver.ubuntu.com:80' id='2EE0EA64E40A89B84B2DF73499E82A75642AC823'
+  become: true
+
+- name: Install SBT
+  apt: name=sbt state=present update_cache=yes
+  become: true
+#  environment:
+#   JAVA_OPTS: "{{ JAVA_VARIABLE }}"
+
+#- git:
+#   repo: 'git@gitlab.pramati.com:bipul.kumar/BGPSecurity.git'
+#   dest: "{{ ansible_user_dir }}/tabi/BGPSecurity"
+#   clone: yes
+#   version: master
+#   force: yes
+#   accept_hostkey: yes
+
+- name: Copying the application conf file to location {{ ansible_user_dir }}/tabi/BGPSecurity/src/main/resources/application.conf
+  template: src=application.j2 dest={{ ansible_user_dir }}/tabi/BGPSecurity/src/main/resources/application.conf
+
+- name: Changing directory to {{ ansible_user_dir }}/tabi/BGPSecurity to compile sbt
+  command: sbt compile
+#  environment: 
+#   JAVA_OPTS: "{{ JAVA_VARIABLE }}"
+  args: 
+   chdir: "{{ ansible_user_dir }}/tabi/BGPSecurity"
+
+- name: Building Fat Jar
+  command: sbt assembly
+#  environment:
+#   JAVA_OPTS: "{{ JAVA_VARIABLE }}"
+  args:
+   chdir: "{{ ansible_user_dir }}/tabi/BGPSecurity"
+
+- name: Check if {{ mysql_db_name }} db is having table {{ mysql_table_name }}
+  shell: mysql -u{{ mysql_user }} -p{{ mysql_password }} -e'use {{ mysql_db_name }}; SHOW TABLES;' | grep {{ mysql_table_name }}
+  ignore_errors: true
+  register: tablestatus
+
+- name: Running the standalone sbt process for creating the tables in {{ mysql_db_name }}
+  command: java -cp target/scala-2.11/BGPSecHistoryService.jar com.imaginea.labs.bgpsec.db.operations.CreateDatabase
+  when: tablestatus.rc != 0
+  args: 
+   chdir: "{{ ansible_user_dir }}/tabi/BGPSecurity"

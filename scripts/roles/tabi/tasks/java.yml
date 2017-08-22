@@ -1,0 +1,15 @@
+---
+- name: add repo for java 8
+  apt_repository: repo='ppa:webupd8team/java' state=present
+
+- name: set Java licence selected
+  shell: /bin/echo debconf shared/accepted-oracle-license-v1-1 select true | /usr/bin/debconf-set-selections
+
+- name: set Java licence seen
+  shell: /bin/echo debconf shared/accepted-oracle-license-v1-1 seen true | /usr/bin/debconf-set-selections
+
+- name: install java 8
+  apt: name=oracle-java8-installer state=latest update-cache=yes force=yes
+
+- name: Creating Link for Java
+  file: src=/usr/lib/jvm/java-8-oracle dest=/usr/lib/jvm/default-java state=link

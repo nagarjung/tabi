@@ -1,0 +1,29 @@
+[program:tabi]
+#directory="{{ ansible_user_dir }}/tabi"
+environment=HOME="{{ ansible_user_dir }}"
+user={{ ansible_user_id }}
+command=/usr/bin/python {{ ansible_user_dir }}/tabi/examples/annotation/detect_hijacks.py -c local -i mabo --registry-path registry --bgp-path bgp
+autostart=true
+autorestart=true
+stderr_logfile=/var/log/supervisor/detect_hijacks.err.log
+stdout_logfile=/var/log/supervisor/detect_hijacks.out.log
+verbose = True
+
+
+[program:HistoryBasedValidationApi]
+command=java -cp {{ ansible_user_dir }}/tabi/BGPSecurity/target/scala-2.11/BGPSecHistoryService.jar com.imaginea.labs.bgpsec.api.HistoryBasedValidationApi
+user={{ ansible_user_id }}
+autostart=true
+autorestart=true
+stderr_logfile=/var/log/supervisor/HistoryBasedValidationApi.log
+stdout_logfile=/var/log/supervisor/HistoryBasedValidationApi.log
+
+
+[program:HistoryBasedFileProcessingJob]
+command=java -cp {{ ansible_user_dir }}/tabi/BGPSecurity/target/scala-2.11/BGPSecHistoryService.jar com.imaginea.labs.bgpsec.spark.HistoryBasedFileProcessingJob
+user={{ ansible_user_id }}
+autostart=true
+autorestart=true
+stderr_logfile=/var/log/supervisor/HistoryBasedFileProcessingJob.log
+stdout_logfile=/var/log/supervisor/HistoryBasedFileProcessingJob.log
+
